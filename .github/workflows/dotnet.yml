@@ -1,0 +1,39 @@
+name: .NET Build and Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug]
+        dotnet-version: [ '8.0']
+    runs-on: ubuntu-latest
+
+    env:
+      Solution_Name: CircularBuffer.NET.sln
+      Test_Project_Path: CircularBuffer.Tests/CircularBuffer.Tests.csproj
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+
+    - name: Restore dependencies
+      run: dotnet restore "${Solution_Name}"
+
+    - name: Build
+      run: dotnet build "${Solution_Name}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-restore
+
+    - name: Test
+      run: dotnet test "${Test_Project_Path}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-build --verbosity normal
