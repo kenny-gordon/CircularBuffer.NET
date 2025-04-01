@@ -10,8 +10,8 @@ jobs:
   build:
     strategy:
       matrix:
-        configuration: [Debug, Release]
-        dotnet-version: [ '8.0']
+        configuration: [Debug]
+        dotnet-version: [ '9.0']
     runs-on: ubuntu-latest
 
     env:
