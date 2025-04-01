@@ -132,10 +132,10 @@ namespace CircularBuffer
             }
         }
 
-//#if DEBUG // For testing purposes
+#if DEBUG // For testing purposes
         public bool IsWriteLockHeld() => _lock.IsWriteLockHeld;
         public bool IsReadLockHeld() => _lock.IsReadLockHeld;
-//#endif
+#endif
         #endregion
 
         #region Methods

@@ -1,9 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Version>1.0.0</Version>
+		<Authors>kenny-gordon</Authors>
+		<Description>A circular buffer implementation for .NET</Description>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/kenny-gordon/CircularBuffer.NET</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/kenny-gordon/CircularBuffer.NET</RepositoryUrl>
+		<PackageId>CircularBuffer.NET</PackageId>
+	</PropertyGroup>
 
 </Project>
