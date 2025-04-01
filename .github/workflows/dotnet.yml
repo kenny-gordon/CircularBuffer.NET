@@ -30,10 +30,17 @@ jobs:
         dotnet-version: ${{ matrix.dotnet-version }}
 
     - name: Restore dependencies
-      run: dotnet restore "${Solution_Name}"
+      run: dotnet restore "${{ env.Solution_Name }}"
+
+    - name: Clean build directory
+      run: dotnet clean
 
     - name: Build
-      run: dotnet build "${Solution_Name}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-restore
+      run: |
+        for i in {1..5}; do
+          dotnet build "${{ env.Solution_Name }}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-restore && break
+          sleep 5
+        done
 
     - name: Test
-      run: dotnet test "${Test_Project_Path}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-build --verbosity normal
+      run: dotnet test "${{ env.Test_Project_Path }}" --configuration ${{ matrix.configuration }} --framework net${{ matrix.dotnet-version }} --no-build --verbosity normal
