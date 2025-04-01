@@ -3,8 +3,6 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using CircularBuffer.Tests.Benchmarks;
 
-BenchmarkRunner.Run<CoreBufferBenchmarks>();
-
 namespace CircularBuffer.Tests.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.Net90)]
