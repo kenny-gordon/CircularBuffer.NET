@@ -1,6 +1,7 @@
 # CircularBuffer.NET
 
 [![Build Status](https://github.com/kenny-gordon/CircularBuffer.NET/actions/workflows/dotnet.yml/badge.svg?branch=master)](https://github.com/kenny-gordon/CircularBuffer.NET/actions/workflows/dotnet.yml)
+[![nuget](https://img.shields.io/nuget/v/CircularBuffer.NET)](https://www.nuget.org/packages/CircularBuffer.NET/)
 
 A circular buffer implementation for .NET.
 
