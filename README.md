@@ -161,7 +161,7 @@ Initial: `[1, 2, 3, 4, 5]`
 
 PushBack(6) => `[2, 3, 4, 5, 6]` (overwrites front)
 
-PushFront(0) => `[0, 6, 2, 3, 4]` (overwrites back)
+PushFront(0) => `[0, 2, 3, 4, 5]` (overwrites back)
 
 ### Concurrency Model
 The `ConcurrentCircularBuffer<T>`:
