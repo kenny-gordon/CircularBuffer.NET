@@ -210,6 +210,209 @@ namespace CircularBuffer.Tests
             Assert.Equal(new[] { 6 }, buffer.ToArray());
         }
 
+        [Fact]
+        public void PushBackRange_WithDataLargerThanCapacity_OverwritesAllElements()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2, 3 });
+            var items = new[] { 4, 5, 6, 7 };
+
+            // Act
+            var overwritten = buffer.PushBackRange(items);
+
+            // Assert
+            Assert.Equal(3, overwritten);
+            Assert.Equal(new[] { 5, 6, 7 }, buffer.ToArray());
+            Assert.Equal(3, buffer.Count);
+        }
+
+        [Fact]
+        public void PushFrontRange_WithDataLargerThanCapacity_OverwritesAllElements()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2, 3 });
+            var items = new[] { 4, 5, 6, 7 };
+
+            // Act
+            var overwritten = buffer.PushFrontRange(items);
+
+            // Assert
+            Assert.Equal(3, overwritten);
+            Assert.Equal(new[] { 4, 5, 6 }, buffer.ToArray());
+            Assert.Equal(3, buffer.Count);
+        }
+
+        [Fact]
+        public void PushBackRange_EmptyInput_DoesNothing()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2, 3 });
+
+            // Act
+            var overwritten = buffer.PushBackRange(ReadOnlySpan<int>.Empty);
+
+            // Assert
+            Assert.Equal(0, overwritten);
+            Assert.Equal(new[] { 1, 2, 3 }, buffer.ToArray());
+        }
+
+        [Fact]
+        public void PushFrontRange_EmptyInput_DoesNothing()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2, 3 });
+
+            // Act
+            var overwritten = buffer.PushFrontRange(ReadOnlySpan<int>.Empty);
+
+            // Assert
+            Assert.Equal(0, overwritten);
+            Assert.Equal(new[] { 1, 2, 3 }, buffer.ToArray());
+        }
+
+        #endregion
+
+        #region Try Operations
+
+        /// <summary>
+        /// Tests TryPopFront on a non-empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPopFront_WithItems_ReturnsTrueAndItem()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2 });
+
+            // Act
+            var result = buffer.TryPopFront(out var item);
+
+            // Assert
+            Assert.True(result);
+            Assert.Equal(1, item);
+            Assert.Equal(new[] { 2 }, buffer.ToArray());
+        }
+
+        /// <summary>
+        /// Tests TryPopFront on an empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPopFront_WhenEmpty_ReturnsFalse()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3);
+
+            // Act
+            var result = buffer.TryPopFront(out var item);
+
+            // Assert
+            Assert.False(result);
+            Assert.Equal(default, item);
+        }
+
+        /// <summary>
+        /// Tests TryPopBack on a non-empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPopBack_WithItems_ReturnsTrueAndItem()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2 });
+
+            // Act
+            var result = buffer.TryPopBack(out var item);
+
+            // Assert
+            Assert.True(result);
+            Assert.Equal(2, item);
+            Assert.Equal(new[] { 1 }, buffer.ToArray());
+        }
+
+        /// <summary>
+        /// Tests TryPopBack on an empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPopBack_WhenEmpty_ReturnsFalse()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3);
+
+            // Act
+            var result = buffer.TryPopBack(out var item);
+
+            // Assert
+            Assert.False(result);
+            Assert.Equal(default, item);
+        }
+
+        /// <summary>
+        /// Tests TryPeekFront on a non-empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPeekFront_WithItems_ReturnsTrueAndItem()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2 });
+
+            // Act
+            var result = buffer.TryPeekFront(out var item);
+
+            // Assert
+            Assert.True(result);
+            Assert.Equal(1, item);
+            Assert.Equal(new[] { 1, 2 }, buffer.ToArray()); // Unchanged
+        }
+
+        /// <summary>
+        /// Tests TryPeekFront on an empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPeekFront_WhenEmpty_ReturnsFalse()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3);
+
+            // Act
+            var result = buffer.TryPeekFront(out var item);
+
+            // Assert
+            Assert.False(result);
+            Assert.Equal(default, item);
+        }
+
+        /// <summary>
+        /// Tests TryPeekBack on a non-empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPeekBack_WithItems_ReturnsTrueAndItem()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3, new[] { 1, 2 });
+
+            // Act
+            var result = buffer.TryPeekBack(out var item);
+
+            // Assert
+            Assert.True(result);
+            Assert.Equal(2, item);
+            Assert.Equal(new[] { 1, 2 }, buffer.ToArray()); // Unchanged
+        }
+
+        /// <summary>
+        /// Tests TryPeekBack on an empty buffer.
+        /// </summary>
+        [Fact]
+        public void TryPeekBack_WhenEmpty_ReturnsFalse()
+        {
+            // Arrange
+            var buffer = CreateBuffer(3);
+
+            // Act
+            var result = buffer.TryPeekBack(out var item);
+
+            // Assert
+            Assert.False(result);
+            Assert.Equal(default, item);
+        }
         #endregion
 
         #region Edge Cases & Error Handling
@@ -330,6 +533,7 @@ namespace CircularBuffer.Tests
         }
 
         #endregion
+
     }
 
     #endregion
@@ -383,6 +587,88 @@ namespace CircularBuffer.Tests
 
             // Assert
             Assert.Equal(new[] { 0, 3, 4, 5, 0 }, destination);
+        }
+
+        #endregion
+
+        #region Contiguous Span Tests
+
+        /// <summary>
+        /// Tests that the contiguous spans are correct for a non-wrapped buffer.
+        /// </summary>
+        [Fact]
+        public void ContiguousSpans_WithNonWrappedBuffer_ReturnsCorrectSpans()
+        {
+            // Arrange
+            var buffer = CreateBuffer(5, new[] { 1, 2, 3 });
+
+            // Act
+            var firstSpan = buffer.FirstContiguousSpan;
+            var secondSpan = buffer.SecondContiguousSpan;
+
+            // Assert
+            Assert.Equal(new[] { 1, 2, 3 }, firstSpan.ToArray());
+            Assert.True(secondSpan.IsEmpty);
+        }
+
+        /// <summary>
+        /// Tests that the contiguous spans are correct for a wrapped buffer.
+        /// </summary>
+        [Fact]
+        public void ContiguousSpans_WithWrappedBuffer_ReturnsCorrectSpans()
+        {
+            // Arrange
+            var buffer = CreateBuffer(5, new[] { 1, 2, 3, 4, 5 });
+            buffer.PopFront();
+            buffer.PopFront();
+            buffer.PushBack(6);
+            buffer.PushBack(7); // Buffer is now { 3, 4, 5, 6, 7 } and wrapped, _start=2, _end=2
+
+            // Act
+            var firstSpan = buffer.FirstContiguousSpan;
+            var secondSpan = buffer.SecondContiguousSpan;
+
+            // Assert
+            Assert.Equal(new[] { 3, 4, 5 }, firstSpan.ToArray());
+            Assert.Equal(new[] { 6, 7 }, secondSpan.ToArray());
+        }
+
+        /// <summary>
+        /// Tests that the contiguous spans are correct for a full wrapped buffer.
+        /// </summary>
+        [Fact]
+        public void ContiguousSpans_WithFullWrappedBuffer_ReturnsCorrectSpans()
+        {
+            // Arrange
+            var buffer = CreateBuffer(5, new[] { 1, 2, 3, 4, 5 });
+            buffer.PopFront(); // Start at 1
+            buffer.PushBack(6); // End at 1, buffer is { 2, 3, 4, 5, 6 }
+
+            // Act
+            var firstSpan = buffer.FirstContiguousSpan;
+            var secondSpan = buffer.SecondContiguousSpan;
+
+            // Assert
+            Assert.Equal(new[] { 2, 3, 4, 5 }, firstSpan.ToArray());
+            Assert.Equal(new[] { 6 }, secondSpan.ToArray());
+        }
+
+        /// <summary>
+        /// Tests that the contiguous spans are empty for an empty buffer.
+        /// </summary>
+        [Fact]
+        public void ContiguousSpans_WithEmptyBuffer_ReturnsEmptySpans()
+        {
+            // Arrange
+            var buffer = CreateBuffer(5);
+
+            // Act
+            var firstSpan = buffer.FirstContiguousSpan;
+            var secondSpan = buffer.SecondContiguousSpan;
+
+            // Assert
+            Assert.True(firstSpan.IsEmpty);
+            Assert.True(secondSpan.IsEmpty);
         }
 
         #endregion
