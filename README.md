@@ -113,13 +113,24 @@ buffer.Clear();
 ```
 
 #### Copying and Accessing Data
-You can copy the buffer contents to a span or get a read-only span representing the buffer contents.
+You can copy the buffer contents to a span. For direct, allocation-free access to the buffer's internal memory, use `FirstContiguousSpan` and `SecondContiguousSpan`. This is useful for high-performance scenarios where you need to process the data in-place without copying it.
+
+The `AsSpan()` method is obsolete because it may cause an allocation if the buffer's data is wrapped around the end of its internal array.
 
 ```csharp
 Span<int> destination = stackalloc int[buffer.Count];
 buffer.CopyTo(destination);
 
-ReadOnlySpan<int> span = buffer.AsSpan();
+// Zero-allocation access to the buffer's data
+ReadOnlySpan<int> firstSegment = buffer.FirstContiguousSpan;
+ReadOnlySpan<int> secondSegment = buffer.SecondContiguousSpan; // This will be empty if the buffer is not wrapped
+
+// Process the segments
+Process(firstSegment);
+if (!secondSegment.IsEmpty)
+{
+    Process(secondSegment);
+}
 ```
 
 #### Converting to Array
@@ -130,13 +141,17 @@ int[] array = buffer.ToArray();
 ```
 
 ### Thread-Safe Usage
-For thread-safe operations, you can use the `ConcurrentCircularBuffer<T>`.
+For thread-safe operations, you can use the `ConcurrentCircularBuffer<T>`. This class uses reader-writer locks to ensure that all operations are atomic and safe to use from multiple threads.
+
+`ConcurrentCircularBuffer<T>` implements `IDisposable` to manage the lifetime of its internal lock. It's important to dispose of the buffer when you are finished with it to release system resources. The recommended way to do this is with a `using` statement.
 
 ```csharp
-var concurrentBuffer = new ConcurrentCircularBuffer<int>(5);
-concurrentBuffer.PushBack(1);
-concurrentBuffer.PushBack(2);
-int first = concurrentBuffer.PopFront();
+using (var concurrentBuffer = new ConcurrentCircularBuffer<int>(5))
+{
+    concurrentBuffer.PushBack(1);
+    concurrentBuffer.PushBack(2);
+    int first = concurrentBuffer.PopFront();
+} // The buffer is automatically disposed here
 ```
 
 #### Atomic Bulk Operations
@@ -150,9 +165,9 @@ concurrentBuffer.AtomicBulkOperation(b => {
 ```
 
 ### Performance Notes
-- **Non-concurrent version:** Zero allocations for core operations.
-- **Concurrent version:** Adds ~20ns overhead per operation.
-- **ToArray/Clear:** Allocate new arrays (use `CopyTo`/`AsSpan` for allocation-free access).
+- **Non-concurrent version:** Zero allocations for core operations when using methods like `PushBack`, `PopFront`, `CopyTo`, `FirstContiguousSpan`, and `SecondContiguousSpan`.
+- **Concurrent version:** Adds a small overhead per operation due to locking.
+- **ToArray/Clear:** `ToArray` allocates a new array for the snapshot. `Clear` does not allocate.
 
 ### Overwrite Behavior
 Visualization of a 5-element buffer:
@@ -170,20 +185,22 @@ The `ConcurrentCircularBuffer<T>`:
 - Provides consistent snapshots via `GetSnapshot()`.
 
 ### API Reference Table
-| Method           | Complexity | Notes                                    |
-|------------------|------------|------------------------------------------|
-| PushBack         | O(1)       | Overwrites oldest element when full      |
-| PushFront        | O(1)       | Overwrites newest element when full      |
-| PopBack          | O(1)       | Throws if empty                          |
-| PopFront         | O(1)       | Throws if empty                          |
-| PushBackRange    | O(n)       | Optimal for contiguous space             |
-| PushFrontRange   | O(n)       | Optimal for contiguous space             |
-| PopBackRange     | O(n)       | Removes multiple elements                |
-| PopFrontRange    | O(n)       | Removes multiple elements                |
-| Clear            | O(n)       | Clears all elements                      |
-| ToArray          | O(n)       | Converts buffer to array                 |
-| CopyTo           | O(n)       | Copies buffer contents to a span         |
-| AsSpan           | O(1)       | Returns a read-only span of buffer       |
+| Method/Property        | Complexity | Notes                                                                |
+|------------------------|------------|----------------------------------------------------------------------|
+| PushBack               | O(1)       | Overwrites oldest element when full                                  |
+| PushFront              | O(1)       | Overwrites newest element when full                                  |
+| PopBack                | O(1)       | Throws if empty                                                      |
+| PopFront               | O(1)       | Throws if empty                                                      |
+| PushBackRange          | O(n)       | Optimal for contiguous space                                         |
+| PushFrontRange         | O(n)       | Optimal for contiguous space                                         |
+| PopBackRange           | O(n)       | Removes multiple elements                                            |
+| PopFrontRange          | O(n)       | Removes multiple elements                                            |
+| Clear                  | O(n)       | Clears all elements                                                  |
+| ToArray                | O(n)       | Converts buffer to array                                             |
+| CopyTo                 | O(n)       | Copies buffer contents to a span                                     |
+| FirstContiguousSpan    | O(1)       | Returns a read-only span of the first contiguous segment of data     |
+| SecondContiguousSpan   | O(1)       | Returns a read-only span of the second contiguous segment (if any)   |
+| Dispose                | O(1)       | Releases resources used by `ConcurrentCircularBuffer<T>`             |
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request.

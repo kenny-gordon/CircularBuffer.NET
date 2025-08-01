@@ -8,7 +8,7 @@ namespace CircularBuffer
     /// </summary>
     /// <typeparam name="T">The type of elements in the buffer.</typeparam>
     [DebuggerDisplay("Count = {Count}, Capacity = {Capacity}")]
-    public sealed class ConcurrentCircularBuffer<T> : ICircularBuffer<T>
+    public sealed class ConcurrentCircularBuffer<T> : ICircularBuffer<T>, IDisposable
     {
         #region Fields
 
@@ -21,6 +21,11 @@ namespace CircularBuffer
         /// The reader-writer lock to ensure thread safety.
         /// </summary>
         private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
+
+        /// <summary>
+        /// A flag to indicate if the buffer has been disposed.
+        /// </summary>
+        private bool _disposed;
 
         #endregion
 
@@ -50,21 +55,14 @@ namespace CircularBuffer
         #region Properties
 
         /// <inheritdoc/>
-        public int Capacity
-        {
-            get
-            {
-                _lock.EnterReadLock();
-                try { return _buffer.Capacity; }
-                finally { _lock.ExitReadLock(); }
-            }
-        }
+        public int Capacity => _buffer.Capacity;
 
         /// <inheritdoc/>
         public int Count
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer.Count; }
                 finally { _lock.ExitReadLock(); }
@@ -76,6 +74,7 @@ namespace CircularBuffer
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer.IsFull; }
                 finally { _lock.ExitReadLock(); }
@@ -87,6 +86,7 @@ namespace CircularBuffer
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer.IsEmpty; }
                 finally { _lock.ExitReadLock(); }
@@ -98,6 +98,7 @@ namespace CircularBuffer
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer.First; }
                 finally { _lock.ExitReadLock(); }
@@ -109,6 +110,7 @@ namespace CircularBuffer
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer.Last; }
                 finally { _lock.ExitReadLock(); }
@@ -120,12 +122,14 @@ namespace CircularBuffer
         {
             get
             {
+                ThrowIfDisposed();
                 _lock.EnterReadLock();
                 try { return _buffer[index]; }
                 finally { _lock.ExitReadLock(); }
             }
             set
             {
+                ThrowIfDisposed();
                 _lock.EnterWriteLock();
                 try { _buffer[index] = value; }
                 finally { _lock.ExitWriteLock(); }
@@ -143,6 +147,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public void PushBack(T item)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { _buffer.PushBack(item); }
             finally { _lock.ExitWriteLock(); }
@@ -151,6 +156,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public void PushFront(T item)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { _buffer.PushFront(item); }
             finally { _lock.ExitWriteLock(); }
@@ -159,6 +165,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public T PopBack()
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PopBack(); }
             finally { _lock.ExitWriteLock(); }
@@ -167,6 +174,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public T PopFront()
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PopFront(); }
             finally { _lock.ExitWriteLock(); }
@@ -175,6 +183,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public bool TryPopFront(out T item)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.TryPopFront(out item); }
             finally { _lock.ExitWriteLock(); }
@@ -183,6 +192,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public bool TryPopBack(out T item)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.TryPopBack(out item); }
             finally { _lock.ExitWriteLock(); }
@@ -191,6 +201,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public bool TryPeekFront(out T item)
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _buffer.TryPeekFront(out item); }
             finally { _lock.ExitReadLock(); }
@@ -199,6 +210,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public bool TryPeekBack(out T item)
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _buffer.TryPeekBack(out item); }
             finally { _lock.ExitReadLock(); }
@@ -207,6 +219,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public int PushBackRange(ReadOnlySpan<T> items)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PushBackRange(items); }
             finally { _lock.ExitWriteLock(); }
@@ -215,6 +228,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public int PushFrontRange(ReadOnlySpan<T> items)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PushFrontRange(items); }
             finally { _lock.ExitWriteLock(); }
@@ -223,6 +237,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public int PopBackRange(Span<T> destination)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PopBackRange(destination); }
             finally { _lock.ExitWriteLock(); }
@@ -231,6 +246,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public int PopFrontRange(Span<T> destination)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { return _buffer.PopFrontRange(destination); }
             finally { _lock.ExitWriteLock(); }
@@ -239,6 +255,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public void Clear()
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { _buffer.Clear(); }
             finally { _lock.ExitWriteLock(); }
@@ -247,6 +264,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public T[] ToArray()
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _buffer.ToArray(); }
             finally { _lock.ExitReadLock(); }
@@ -255,6 +273,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public ReadOnlySpan<T> AsSpan()
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _buffer.AsSpan(); }
             finally { _lock.ExitReadLock(); }
@@ -263,6 +282,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public void CopyTo(Span<T> destination)
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { _buffer.CopyTo(destination); }
             finally { _lock.ExitReadLock(); }
@@ -274,6 +294,7 @@ namespace CircularBuffer
         /// <returns>A read-only span representing the buffer contents.</returns>
         public ReadOnlySpan<T> GetSnapshot()
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _buffer.ToArray().AsSpan(); }
             finally { _lock.ExitReadLock(); }
@@ -282,6 +303,7 @@ namespace CircularBuffer
         /// <inheritdoc/>
         public IEnumerator<T> GetEnumerator()
         {
+            ThrowIfDisposed();
             T[] snapshot;
             _lock.EnterReadLock();
             try { snapshot = _buffer.ToArray(); }
@@ -299,6 +321,7 @@ namespace CircularBuffer
         /// <param name="action">The action to perform on the buffer.</param>
         public void AtomicBulkOperation(Action<CircularBuffer<T>> action)
         {
+            ThrowIfDisposed();
             _lock.EnterWriteLock();
             try { action(_buffer); }
             finally { _lock.ExitWriteLock(); }
@@ -312,6 +335,7 @@ namespace CircularBuffer
         /// <returns>The result of the function.</returns>
         public TResult AtomicReadOperation<TResult>(Func<CircularBuffer<T>, TResult> func)
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return func(_buffer); }
             finally { _lock.ExitReadLock(); }
@@ -319,14 +343,40 @@ namespace CircularBuffer
 
         #endregion
 
-        #region Destructors
+        #region IDisposable
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="ConcurrentCircularBuffer{T}"/> class.
+        /// Releases the resources used by the <see cref="ConcurrentCircularBuffer{T}"/>.
         /// </summary>
-        ~ConcurrentCircularBuffer()
+        public void Dispose()
         {
-            _lock.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="ConcurrentCircularBuffer{T}"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+        private void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+            if (disposing)
+            {
+                _lock.Dispose();
+            }
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Throws an <see cref="ObjectDisposedException"/> if the buffer has been disposed.
+        /// </summary>
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
         }
 
         #endregion
