@@ -798,6 +798,33 @@ namespace CircularBuffer.Tests
         }
 
         #endregion
+
+        #region Dispose Tests
+
+        /// <summary>
+        /// Validates that using the buffer after it has been disposed throws an exception.
+        /// </summary>
+        [Fact]
+        public void Dispose_ThrowsObjectDisposedExceptionOnSubsequentUse()
+        {
+            // Arrange
+            var buffer = CreateBuffer(5);
+            buffer.PushBack(1);
+
+            // Act
+            ((IDisposable)buffer).Dispose();
+
+            // Assert
+            Assert.Throws<ObjectDisposedException>(() => buffer.PushBack(2));
+            Assert.Throws<ObjectDisposedException>(() => buffer.PopFront());
+            Assert.Throws<ObjectDisposedException>(() => buffer.Count);
+            Assert.Throws<ObjectDisposedException>(() => buffer.ToArray());
+
+            // Capacity is exempt as it doesn't depend on the lock
+            Assert.Equal(5, buffer.Capacity);
+        }
+
+        #endregion
     }
 
     #endregion

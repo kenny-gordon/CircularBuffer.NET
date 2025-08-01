@@ -247,23 +247,29 @@ namespace CircularBuffer
         {
             if (items.IsEmpty) return 0;
 
+            // Determine how many items to copy. If `items` is larger than capacity, we only copy the last `Capacity` items.
             int copyLength = Math.Min(items.Length, Capacity);
             var itemsToCopy = items[^copyLength..];
 
+            // Calculate how many existing items will be overwritten.
             int bufferOverwritten = Math.Max(0, copyLength - (Capacity - _count));
 
             if (bufferOverwritten > 0)
             {
+                // If we're overwriting, the new start will be advanced past the overwritten items.
                 _start = (_start + bufferOverwritten) % Capacity;
                 _count -= bufferOverwritten;
             }
 
+            // Copy the items into the buffer, handling wrap-around if necessary.
             if (Capacity - _end >= copyLength)
             {
+                // No wrap-around, copy in a single block.
                 itemsToCopy.CopyTo(_buffer.AsSpan(_end));
             }
             else
             {
+                // Wrap-around, copy in two segments.
                 int firstSegment = Capacity - _end;
                 itemsToCopy[..firstSegment].CopyTo(_buffer.AsSpan(_end));
                 itemsToCopy[firstSegment..].CopyTo(_buffer);
@@ -280,25 +286,32 @@ namespace CircularBuffer
         {
             if (items.IsEmpty) return 0;
 
+            // Determine how many items to copy. If `items` is larger than capacity, we only copy the first `Capacity` items.
             int copyLength = Math.Min(items.Length, Capacity);
             var itemsToCopy = items[..copyLength];
 
+            // Calculate how many existing items will be overwritten.
             int bufferOverwritten = Math.Max(0, copyLength - (Capacity - _count));
 
             if (bufferOverwritten > 0)
             {
+                // If we're overwriting, the end will be moved back past the overwritten items.
                 _end = (_end - bufferOverwritten + Capacity) % Capacity;
                 _count -= bufferOverwritten;
             }
 
+            // Move start pointer backwards to make space for new items.
             _start = (_start - copyLength + Capacity) % Capacity;
 
+            // Copy the items into the buffer, handling wrap-around if necessary.
             if (_start + copyLength <= Capacity)
             {
+                // No wrap-around, copy in a single block.
                 itemsToCopy.CopyTo(_buffer.AsSpan(_start));
             }
             else
             {
+                // Wrap-around, copy in two segments.
                 int firstSegment = Capacity - _start;
                 itemsToCopy[..firstSegment].CopyTo(_buffer.AsSpan(_start));
                 itemsToCopy[firstSegment..].CopyTo(_buffer);
@@ -315,20 +328,36 @@ namespace CircularBuffer
             var countToRemove = Math.Min(destination.Length, _count);
             if (countToRemove == 0) return 0;
 
+            // Calculate the starting index of the segment to pop from the back.
             var srcStart = (_end - countToRemove + Capacity) % Capacity;
 
+            // Copy the items from the buffer to the destination, handling wrap-around.
             if (srcStart + countToRemove <= Capacity)
             {
+                // No wrap-around, copy in a single block.
                 _buffer.AsSpan(srcStart, countToRemove).CopyTo(destination);
             }
             else
             {
+                // Wrap-around, copy in two segments.
                 var firstSegment = Capacity - srcStart;
                 _buffer.AsSpan(srcStart, firstSegment).CopyTo(destination);
                 _buffer.AsSpan(0, countToRemove - firstSegment).CopyTo(destination[firstSegment..]);
             }
 
-            _buffer.AsSpan(srcStart, countToRemove).Clear();
+            // Clear the popped items from the buffer to prevent memory leaks.
+            // Note: This clear operation also needs to handle wrap-around.
+            if (srcStart + countToRemove <= Capacity)
+            {
+                _buffer.AsSpan(srcStart, countToRemove).Clear();
+            }
+            else
+            {
+                var firstSegment = Capacity - srcStart;
+                _buffer.AsSpan(srcStart, firstSegment).Clear();
+                _buffer.AsSpan(0, countToRemove - firstSegment).Clear();
+            }
+
             _count -= countToRemove;
             _end = (_end - countToRemove + Capacity) % Capacity;
 
@@ -341,18 +370,33 @@ namespace CircularBuffer
             var countToRemove = Math.Min(destination.Length, _count);
             if (countToRemove == 0) return 0;
 
+            // Copy the items from the buffer to the destination, handling wrap-around.
             if (_start + countToRemove <= Capacity)
             {
+                // No wrap-around, copy in a single block.
                 _buffer.AsSpan(_start, countToRemove).CopyTo(destination);
             }
             else
             {
+                // Wrap-around, copy in two segments.
                 var firstSegment = Capacity - _start;
                 _buffer.AsSpan(_start, firstSegment).CopyTo(destination);
                 _buffer.AsSpan(0, countToRemove - firstSegment).CopyTo(destination[firstSegment..]);
             }
 
-            _buffer.AsSpan(_start, countToRemove).Clear();
+            // Clear the popped items from the buffer to prevent memory leaks.
+            // Note: This clear operation also needs to handle wrap-around.
+            if (_start + countToRemove <= Capacity)
+            {
+                _buffer.AsSpan(_start, countToRemove).Clear();
+            }
+            else
+            {
+                var firstSegment = Capacity - _start;
+                _buffer.AsSpan(_start, firstSegment).Clear();
+                _buffer.AsSpan(0, countToRemove - firstSegment).Clear();
+            }
+
             _count -= countToRemove;
             _start = (_start + countToRemove) % Capacity;
 
