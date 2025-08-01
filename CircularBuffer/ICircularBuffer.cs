@@ -92,6 +92,34 @@ namespace CircularBuffer
         T PopFront();
 
         /// <summary>
+        /// Tries to remove and return the item from the front of the buffer.
+        /// </summary>
+        /// <param name="item">The popped item, or default if the buffer was empty.</param>
+        /// <returns>True if an item was popped, false otherwise.</returns>
+        bool TryPopFront(out T item);
+
+        /// <summary>
+        /// Tries to remove and return the item from the end of the buffer.
+        /// </summary>
+        /// <param name="item">The popped item, or default if the buffer was empty.</param>
+        /// <returns>True if an item was popped, false otherwise.</returns>
+        bool TryPopBack(out T item);
+
+        /// <summary>
+        /// Tries to return the item from the front of the buffer without removing it.
+        /// </summary>
+        /// <param name="item">The peeked item, or default if the buffer was empty.</param>
+        /// <returns>True if an item was peeked, false otherwise.</returns>
+        bool TryPeekFront(out T item);
+
+        /// <summary>
+        /// Tries to return the item from the end of the buffer without removing it.
+        /// </summary>
+        /// <param name="item">The peeked item, or default if the buffer was empty.</param>
+        /// <returns>True if an item was peeked, false otherwise.</returns>
+        bool TryPeekBack(out T item);
+
+        /// <summary>
         /// Adds multiple items to the end of the buffer.
         /// </summary>
         /// <param name="items">The items to add.</param>

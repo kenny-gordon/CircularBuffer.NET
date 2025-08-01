@@ -8,6 +8,9 @@ namespace CircularBuffer
     /// Represents a circular buffer data structure.
     /// </summary>
     /// <typeparam name="T">The type of elements in the buffer.</typeparam>
+    /// <remarks>
+    /// This implementation is not thread-safe. For a thread-safe version, please use <see cref="ConcurrentCircularBuffer{T}"/>.
+    /// </remarks>
     [DebuggerDisplay("Count = {Count}, Capacity = {Capacity}")]
     public sealed class CircularBuffer<T> : ICircularBuffer<T>
     {
@@ -180,6 +183,54 @@ namespace CircularBuffer
         }
 
         /// <inheritdoc/>
+        public bool TryPopFront(out T item)
+        {
+            if (IsEmpty)
+            {
+                item = default!;
+                return false;
+            }
+            item = PopFront();
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public bool TryPopBack(out T item)
+        {
+            if (IsEmpty)
+            {
+                item = default!;
+                return false;
+            }
+            item = PopBack();
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public bool TryPeekFront(out T item)
+        {
+            if (IsEmpty)
+            {
+                item = default!;
+                return false;
+            }
+            item = First;
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public bool TryPeekBack(out T item)
+        {
+            if (IsEmpty)
+            {
+                item = default!;
+                return false;
+            }
+            item = Last;
+            return true;
+        }
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T PopFront()
         {
@@ -196,37 +247,32 @@ namespace CircularBuffer
         {
             if (items.IsEmpty) return 0;
 
-            int overwritten = Math.Max(0, items.Length - (Capacity - _count));
             int copyLength = Math.Min(items.Length, Capacity);
+            var itemsToCopy = items[^copyLength..];
 
-            if (copyLength > 0)
+            int bufferOverwritten = Math.Max(0, copyLength - (Capacity - _count));
+
+            if (bufferOverwritten > 0)
             {
-                // Overwrite oldest elements (front) first
-                if (overwritten > 0)
-                {
-                    _start = (_start + overwritten) % Capacity;
-                    _count -= overwritten;
-                }
-
-                // Copy items to back
-                if (Capacity - _end >= copyLength)
-                {
-                    items[..copyLength].CopyTo(_buffer.AsSpan(_end));
-                }
-                else
-                {
-                    int firstSegment = Capacity - _end;
-                    items[..firstSegment].CopyTo(_buffer.AsSpan(_end));
-                    items[firstSegment..].CopyTo(_buffer);
-                }
-
-                // Update state
-                _end = (_end + copyLength) % Capacity;
-                _count += copyLength;
-                _start = IsFull ? _end : _start; // Maintain full buffer invariant
+                _start = (_start + bufferOverwritten) % Capacity;
+                _count -= bufferOverwritten;
             }
 
-            return overwritten;
+            if (Capacity - _end >= copyLength)
+            {
+                itemsToCopy.CopyTo(_buffer.AsSpan(_end));
+            }
+            else
+            {
+                int firstSegment = Capacity - _end;
+                itemsToCopy[..firstSegment].CopyTo(_buffer.AsSpan(_end));
+                itemsToCopy[firstSegment..].CopyTo(_buffer);
+            }
+
+            _end = (_end + copyLength) % Capacity;
+            _count += copyLength;
+
+            return bufferOverwritten;
         }
 
         /// <inheritdoc/>
@@ -234,40 +280,33 @@ namespace CircularBuffer
         {
             if (items.IsEmpty) return 0;
 
-            int overwritten = Math.Max(0, items.Length - (Capacity - _count));
             int copyLength = Math.Min(items.Length, Capacity);
+            var itemsToCopy = items[..copyLength];
 
-            if (copyLength > 0)
+            int bufferOverwritten = Math.Max(0, copyLength - (Capacity - _count));
+
+            if (bufferOverwritten > 0)
             {
-                // Overwrite newest elements (back) first
-                if (overwritten > 0)
-                {
-                    _end = (_end - overwritten + Capacity) % Capacity;
-                    _count -= overwritten;
-                }
-
-                // Calculate insertion point
-                int newStart = (_start - copyLength + Capacity) % Capacity;
-
-                // Copy items to front
-                if (newStart + copyLength <= Capacity)
-                {
-                    items[^copyLength..].CopyTo(_buffer.AsSpan(newStart));
-                }
-                else
-                {
-                    int firstSegment = Capacity - newStart;
-                    items[^copyLength..^(copyLength - firstSegment)].CopyTo(_buffer.AsSpan(newStart));
-                    items[^(copyLength - firstSegment)..].CopyTo(_buffer);
-                }
-
-                // Update state
-                _start = newStart;
-                _count += copyLength;
-                _end = IsFull ? _start : _end; // Maintain full buffer invariant
+                _end = (_end - bufferOverwritten + Capacity) % Capacity;
+                _count -= bufferOverwritten;
             }
 
-            return overwritten;
+            _start = (_start - copyLength + Capacity) % Capacity;
+
+            if (_start + copyLength <= Capacity)
+            {
+                itemsToCopy.CopyTo(_buffer.AsSpan(_start));
+            }
+            else
+            {
+                int firstSegment = Capacity - _start;
+                itemsToCopy[..firstSegment].CopyTo(_buffer.AsSpan(_start));
+                itemsToCopy[firstSegment..].CopyTo(_buffer);
+            }
+
+            _count += copyLength;
+
+            return bufferOverwritten;
         }
 
         /// <inheritdoc/>
@@ -363,7 +402,31 @@ namespace CircularBuffer
         }
 
         /// <inheritdoc/>
+        public ReadOnlySpan<T> FirstContiguousSpan
+        {
+            get
+            {
+                if (IsEmpty) return ReadOnlySpan<T>.Empty;
+                if (_start < _end)
+                {
+                    return _buffer.AsSpan(_start, _count);
+                }
+                return _buffer.AsSpan(_start, Capacity - _start);
+            }
+        }
+
         /// <inheritdoc/>
+        public ReadOnlySpan<T> SecondContiguousSpan
+        {
+            get
+            {
+                if (IsEmpty || _start < _end) return ReadOnlySpan<T>.Empty;
+                return _buffer.AsSpan(0, _end);
+            }
+        }
+
+        /// <inheritdoc/>
+        [Obsolete("This method may cause an allocation if the buffer is wrapped. Use FirstContiguousSpan and SecondContiguousSpan instead.", error: false)]
         public ReadOnlySpan<T> AsSpan()
         {
             if (_count == 0) return ReadOnlySpan<T>.Empty;

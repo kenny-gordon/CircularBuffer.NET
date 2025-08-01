@@ -173,6 +173,38 @@ namespace CircularBuffer
         }
 
         /// <inheritdoc/>
+        public bool TryPopFront(out T item)
+        {
+            _lock.EnterWriteLock();
+            try { return _buffer.TryPopFront(out item); }
+            finally { _lock.ExitWriteLock(); }
+        }
+
+        /// <inheritdoc/>
+        public bool TryPopBack(out T item)
+        {
+            _lock.EnterWriteLock();
+            try { return _buffer.TryPopBack(out item); }
+            finally { _lock.ExitWriteLock(); }
+        }
+
+        /// <inheritdoc/>
+        public bool TryPeekFront(out T item)
+        {
+            _lock.EnterReadLock();
+            try { return _buffer.TryPeekFront(out item); }
+            finally { _lock.ExitReadLock(); }
+        }
+
+        /// <inheritdoc/>
+        public bool TryPeekBack(out T item)
+        {
+            _lock.EnterReadLock();
+            try { return _buffer.TryPeekBack(out item); }
+            finally { _lock.ExitReadLock(); }
+        }
+
+        /// <inheritdoc/>
         public int PushBackRange(ReadOnlySpan<T> items)
         {
             _lock.EnterWriteLock();
